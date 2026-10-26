@@ -35,6 +35,28 @@ export async function loadExercises(): Promise<ExerciseInfo[]> {
   return [...bundled, ...custom.map(toInfo)].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export interface ExerciseCategory {
+  muscle: string;
+  count: number;
+}
+
+let categoriesCache: ExerciseCategory[] | null = null;
+let categoriesSource: ExerciseInfo[] | null = null;
+
+/** Distinct muscle groups with exercise counts, name-sorted. */
+export function categoryList(exercises: ExerciseInfo[]): ExerciseCategory[] {
+  if (categoriesCache && categoriesSource === exercises) return categoriesCache;
+  const counts = new Map<string, number>();
+  for (const e of exercises) {
+    counts.set(e.muscle, (counts.get(e.muscle) ?? 0) + 1);
+  }
+  categoriesSource = exercises;
+  categoriesCache = [...counts.entries()]
+    .map(([muscle, count]) => ({ muscle, count }))
+    .sort((a, b) => a.muscle.localeCompare(b.muscle));
+  return categoriesCache;
+}
+
 /**
  * Two frame images hosted on GitHub (free-exercise-db). Alternate them ~0.8s
  * for a GIF-like animation. Service worker caches viewed images for offline.
