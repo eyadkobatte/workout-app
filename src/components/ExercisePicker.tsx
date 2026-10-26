@@ -1,9 +1,7 @@
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { loadExercises, type ExerciseInfo } from "../lib/exercises";
-import { Dialog, DialogTitle } from "./ui/dialog";
+import { Sheet, SheetTitle } from "./ui/sheet";
 import { Input } from "./ui/input";
+import { loadExercises, type ExerciseInfo } from "../lib/exercises";
 
 interface ExercisePickerProps {
   open: boolean;
@@ -13,7 +11,7 @@ interface ExercisePickerProps {
   existing?: string[];
 }
 
-/** Bottom sheet sliding up over a dimmed backdrop (PLAN animations). */
+/** Bottom sheet for picking an exercise into the active workout. */
 export function ExercisePicker({ open, onOpenChange, onPick, existing = [] }: ExercisePickerProps) {
   const [query, setQuery] = useState("");
   const [exercises, setExercises] = useState<ExerciseInfo[]>([]);
@@ -37,64 +35,37 @@ export function ExercisePicker({ open, onOpenChange, onPick, existing = [] }: Ex
   }, [exercises, query, existing]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <AnimatePresence>
-        {open && (
-          <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay forceMount asChild>
-              <motion.div
-                className="fixed inset-0 z-50 bg-black/50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              />
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content forceMount asChild aria-describedby={undefined}>
-              <motion.div
-                className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-lg border border-b-0 border-border bg-card pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 400, damping: 40 }}
-              >
-                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" aria-hidden />
-                <div className="px-4 pt-2">
-                  <DialogTitle>Add exercise</DialogTitle>
-                  <Input
-                    autoFocus
-                    placeholder="Search exercises…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="mt-3"
-                  />
-                </div>
-                <ul className="mt-2 max-h-[50dvh] divide-y divide-border overflow-y-auto">
-                  {filtered.map((e) => (
-                    <li key={e.id}>
-                      <button
-                        type="button"
-                        className="flex h-11 w-full items-baseline justify-between px-4 text-left text-sm hover:bg-muted"
-                        onClick={() => {
-                          onPick(e.name);
-                          handleOpenChange(false);
-                        }}
-                      >
-                        <span>{e.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">{e.muscle}</span>
-                      </button>
-                    </li>
-                  ))}
-                  {filtered.length === 0 && (
-                    <li className="px-4 py-6 text-center text-sm text-muted-foreground">
-                      No matches
-                    </li>
-                  )}
-                </ul>
-              </motion.div>
-            </DialogPrimitive.Content>
-          </DialogPrimitive.Portal>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <div className="px-4 pt-2">
+        <SheetTitle>Add exercise</SheetTitle>
+        <Input
+          autoFocus
+          placeholder="Search exercises…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="mt-3"
+        />
+      </div>
+      <ul className="mt-2 max-h-[50dvh] divide-y divide-border overflow-y-auto">
+        {filtered.map((e) => (
+          <li key={e.id}>
+            <button
+              type="button"
+              className="flex h-11 w-full items-baseline justify-between px-4 text-left text-sm hover:bg-muted"
+              onClick={() => {
+                onPick(e.name);
+                handleOpenChange(false);
+              }}
+            >
+              <span>{e.name}</span>
+              <span className="ml-2 text-xs text-muted-foreground">{e.muscle}</span>
+            </button>
+          </li>
+        ))}
+        {filtered.length === 0 && (
+          <li className="px-4 py-6 text-center text-sm text-muted-foreground">No matches</li>
         )}
-      </AnimatePresence>
-    </Dialog>
+      </ul>
+    </Sheet>
   );
 }
