@@ -3,12 +3,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+  /* System stack only — numerals are the hero, no webfont. */
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
@@ -18,33 +23,38 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* Light: log paper — warm paper, pencil ink, plate-red accent. */
 :root {
-  --background: #fafafa;
-  --foreground: #111111;
+  --background: #faf9f5;
+  --foreground: #1b1a17;
   --card: #ffffff;
-  --card-foreground: #111111;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --muted: #f0f0f0;
-  --muted-foreground: #6b7280;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --radius: 0.75rem;
+  --card-foreground: #1b1a17;
+  --accent: #da3a2a;
+  --accent-foreground: #ffffff;
+  --muted: #f0eee7;
+  --muted-foreground: #6e6a5f;
+  --border: #e4e2da;
+  --input: #e4e2da;
+  --radius: 0.5rem;
 }
 
+/* Dark: iron + chalk — cast iron surfaces, chalk text, brighter plate. */
 .dark {
-  --background: #0a0a0a;
-  --foreground: #f5f5f5;
-  --card: #141414;
-  --card-foreground: #f5f5f5;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --muted: #1f1f1f;
-  --muted-foreground: #9ca3af;
-  --border: #262626;
-  --input: #262626;
+  --background: #131416;
+  --foreground: #f1f0eb;
+  --card: #1c1e20;
+  --card-foreground: #f1f0eb;
+  --accent: #ee4433;
+  /* Bright plate carries dark ink for contrast (white only clears ~3.8:1). */
+  --accent-foreground: #1b1a17;
+  --muted: #24272a;
+  --muted-foreground: #a8a79e;
+  --border: #303337;
+  --input: #303337;
 }
 
 body {
   @apply bg-background text-foreground antialiased;
+  /* Every number in the app is tabular by default. */
+  font-variant-numeric: tabular-nums;
 }

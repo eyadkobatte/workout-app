@@ -17,7 +17,7 @@ export function Home() {
 
   return (
     <div className="space-y-6">
-      {draft && <div className="rounded-xl bg-primary/10 p-4">Resume workout</div>}
+      {draft && <div className="rounded-lg bg-accent/10 p-4">Resume workout</div>}
 
       <div className="grid gap-2">
         <Button size="lg" onClick={() => navigate("/workout/new")}>

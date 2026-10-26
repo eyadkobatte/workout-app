@@ -25,7 +25,7 @@ export function LineChart({ title, values, height = 120 }: LineChartProps) {
           <motion.polyline
             points={points}
             fill="none"
-            stroke="var(--color-primary)"
+            stroke="var(--color-accent)"
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"

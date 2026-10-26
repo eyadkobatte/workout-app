@@ -8,16 +8,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-accent text-accent-foreground hover:bg-accent/90",
         outline: "border border-border bg-transparent hover:bg-muted",
         ghost: "hover:bg-muted",
-        destructive: "bg-red-600 text-white hover:bg-red-600/90",
+        // Muted and labelled — destructive never shouts in red.
+        destructive: "bg-muted text-muted-foreground hover:bg-border hover:text-foreground",
       },
+      // Touch targets: ≥44px on every variant.
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
+        default: "h-11 px-4 py-2",
+        sm: "h-11 rounded-md px-3 text-xs",
         lg: "h-12 rounded-lg px-6 text-base",
-        icon: "h-10 w-10",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

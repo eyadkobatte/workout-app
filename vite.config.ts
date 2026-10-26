@@ -13,8 +13,8 @@ export default defineConfig({
         name: "Workout Tracker",
         short_name: "Workout",
         description: "A simple on-device workout tracker",
-        theme_color: "#0a0a0a",
-        background_color: "#0a0a0a",
+        theme_color: "#faf9f5",
+        background_color: "#faf9f5",
         display: "standalone",
         start_url: "/",
         icons: [
