@@ -26,16 +26,7 @@ import {
   workoutSetCount,
   workoutVolume,
 } from "../lib/stats";
-
-/** Ticks once per interval so derived values recompute from the clock. */
-function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(timer);
-  }, [intervalMs]);
-  return now;
-}
+import { useNow } from "../lib/useNow";
 
 /** One card in the drag-reorder list, handle-only drag. */
 function ExerciseItem(props: Omit<ExerciseCardProps, "onDragStart">) {

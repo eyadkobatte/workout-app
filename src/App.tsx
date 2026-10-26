@@ -27,7 +27,7 @@ export default function App() {
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-16">
       <header className="flex items-center justify-between py-4">
         <a href="#/" className="text-lg font-bold tracking-tight">
-          Workout
+          Workout App
         </a>
         <ThemeToggle />
       </header>
