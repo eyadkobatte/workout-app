@@ -77,13 +77,15 @@ export function ExerciseDetail({ name }: { name: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([loadExercises(), getWorkouts()]).then(([exercises, all]) => {
+    void (async () => {
+      // The library lookup is optional — charts and history only need logged data.
+      const [library, all] = await Promise.all([loadExercises().catch(() => null), getWorkouts()]);
       if (cancelled) return;
-      setInfo(exercises.find((e) => e.name === name) ?? null);
+      setInfo(library?.find((e) => e.name === name) ?? null);
       setHistory(
         all.filter((w) => w.endedAt !== null && w.exercises.some((x) => x.name === name)).reverse(),
       );
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -129,6 +131,11 @@ export function ExerciseDetail({ name }: { name: string }) {
       </header>
 
       {info && !info.custom && <ExerciseImage id={info.id} />}
+      {info === null && (
+        <p className="text-sm text-muted-foreground">
+          Not in the library — showing logged data only.
+        </p>
+      )}
 
       <div className="grid grid-cols-4 gap-2 rounded-lg border border-border bg-card py-3 text-center">
         <StatCell label="Sessions" value={String(history.length)} />
