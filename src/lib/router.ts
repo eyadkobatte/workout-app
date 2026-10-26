@@ -12,6 +12,10 @@ export function useHashRoute(): string {
   return path === "" ? "/" : path;
 }
 
-export function navigate(path: string) {
-  window.location.hash = path;
+export function navigate(path: string, options?: { replace?: boolean }) {
+  if (options?.replace) {
+    window.location.replace(`#${path}`);
+  } else {
+    window.location.hash = path;
+  }
 }
