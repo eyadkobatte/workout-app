@@ -2,6 +2,7 @@ node_modules
 dist
 dev-dist
 .git
+.scratch
 plans
 *.log
 .DS_Store
