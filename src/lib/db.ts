@@ -24,8 +24,11 @@ export interface CustomExercise {
 const DB_NAME = "workout-db";
 const DB_VERSION = 1;
 
+// One connection for the page's lifetime, reused across operations.
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  dbPromise ??= new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -39,6 +42,15 @@ function openDb(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+  return dbPromise;
+}
+
+/** Drops the cached connection so a fresh database can be opened (tests). */
+export async function closeDb(): Promise<void> {
+  if (!dbPromise) return;
+  const db = await dbPromise;
+  dbPromise = null;
+  db.close();
 }
 
 function request<T>(req: IDBRequest<T>): Promise<T> {
@@ -55,6 +67,10 @@ async function store(name: "workouts" | "customExercises", mode: IDBTransactionM
 
 export function getWorkouts(): Promise<Workout[]> {
   return store("workouts", "readonly").then((s) => request(s.getAll()));
+}
+
+export function getWorkout(id: number): Promise<Workout | undefined> {
+  return store("workouts", "readonly").then((s) => request<Workout | undefined>(s.get(id)));
 }
 
 export async function putWorkout(workout: Workout): Promise<number> {

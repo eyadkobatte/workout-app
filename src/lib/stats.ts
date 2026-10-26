@@ -41,3 +41,77 @@ export function durationMs(workout: Workout): number | null {
   if (workout.endedAt === null) return null;
   return workout.endedAt - workout.startedAt;
 }
+
+/** Typed value, else the previous session's value, else 0 (issue 04 rule 6). */
+export function effectiveValue(typed: number | null, previous: number | null): number {
+  return typed ?? previous ?? 0;
+}
+
+/**
+ * Finish materializes placeholders (issue 04 rule 6): every field becomes its
+ * effective value, rows whose effective reps <= 0 are dropped, exercises left
+ * with no logged sets are dropped, and endedAt is stamped. The previous
+ * session is matched per exercise by name, per set by position.
+ */
+export function finishWorkout(
+  workout: Workout,
+  previous: Workout | null,
+  endedAt: number = Date.now(),
+): Workout {
+  const exercises = workout.exercises
+    .map((exercise) => {
+      const prev = previous?.exercises.find((e) => e.name === exercise.name);
+      const sets = exercise.sets
+        .map((set, i) => ({
+          kg: effectiveValue(set.kg, prev?.sets[i]?.kg ?? null),
+          reps: effectiveValue(set.reps, prev?.sets[i]?.reps ?? null),
+        }))
+        .filter(isLoggedSet);
+      return { name: exercise.name, sets };
+    })
+    .filter((exercise) => exercise.sets.length > 0);
+  return { ...workout, endedAt, exercises };
+}
+
+/** Reps are integers only (issue 04 rule 3) — decimal entry truncates. */
+export function integerReps(value: number): number {
+  return Math.trunc(value);
+}
+
+/** Volume rounds to whole kg at display time only (issue 04 rule 3). */
+export function displayVolume(volume: number): number {
+  return Math.round(volume);
+}
+
+/** e1RM rounds to 1 decimal at display time only (issue 04 rule 3). */
+export function displayE1rm(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+/** Elapsed clock: m:ss under an hour, h:mm:ss past (issue 04 rule 5). */
+export function formatElapsed(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const two = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${two(m)}:${two(s)}` : `${m}:${two(s)}`;
+}
+
+/**
+ * Best set by e1RM, for the LAST/BEST chips. Bodyweight sets (e1RM 0) never
+ * win; ties keep the earlier set.
+ */
+export function bestSet(sets: WorkoutSet[]): WorkoutSet | null {
+  let best: WorkoutSet | null = null;
+  let bestScore = 0;
+  for (const set of sets) {
+    if (!isLoggedSet(set)) continue;
+    const score = e1rm(set.kg ?? 0, set.reps ?? 0);
+    if (score > bestScore) {
+      best = set;
+      bestScore = score;
+    }
+  }
+  return best;
+}
