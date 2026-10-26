@@ -1,0 +1,5 @@
+{
+  "plugins": ["typescript", "react", "react-hooks"],
+  "env": { "browser": true },
+  "ignorePatterns": ["dist", "dev-dist", "public/exercises.json"]
+}
