@@ -122,6 +122,25 @@ export function sessionSets(workout: Workout, name: string): WorkoutSet[] {
   return workout.exercises.find((e) => e.name === name)?.sets.filter(isLoggedSet) ?? [];
 }
 
+export interface SessionMetrics {
+  volume: number;
+  reps: number;
+  setCount: number;
+  bestE1rm: number;
+}
+
+/** Per-session chart metrics for one exercise (issue 03's four series). */
+export function sessionMetrics(workout: Workout, name: string): SessionMetrics {
+  const sets = sessionSets(workout, name);
+  const best = bestSet(sets);
+  return {
+    volume: sets.reduce((sum, s) => sum + setVolume(s), 0),
+    reps: sets.reduce((sum, s) => sum + (s.reps ?? 0), 0),
+    setCount: sets.length,
+    bestE1rm: best ? e1rm(best.kg ?? 0, best.reps ?? 0) : 0,
+  };
+}
+
 /** Logged sets for an exercise across finished workouts, oldest first. */
 export function exerciseSets(workouts: Workout[], name: string): WorkoutSet[] {
   return workouts.flatMap((w) => (w.endedAt === null ? [] : sessionSets(w, name)));

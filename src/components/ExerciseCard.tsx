@@ -20,7 +20,7 @@ export interface ExerciseCardProps {
   onDragStart: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }
 
-function Chip({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+export function Chip({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <span className="inline-flex items-baseline gap-1.5 rounded-md bg-muted px-2 py-1 text-xs">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>

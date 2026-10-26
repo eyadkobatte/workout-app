@@ -13,6 +13,7 @@ import {
   integerReps,
   isLoggedSet,
   lastSession,
+  sessionMetrics,
   sessionSets,
   setVolume,
   workoutRepCount,
@@ -284,5 +285,51 @@ describe("session lookups (LAST chip, prev column)", () => {
     const prev = lastSession(history, "Bench");
     expect(prev ? bestSet(sessionSets(prev, "Bench")) : null).toEqual({ kg: 60, reps: 8 });
     expect(bestSet(exerciseSets(history, "Bench"))).toEqual({ kg: 60, reps: 8 });
+  });
+});
+
+describe("session metrics (chart series)", () => {
+  const w: Workout = {
+    id: 1,
+    startedAt: 0,
+    endedAt: 10,
+    exercises: [
+      {
+        name: "Bench",
+        sets: [
+          { kg: 60, reps: 8 },
+          { kg: 65, reps: 5 },
+          { kg: null, reps: null },
+        ],
+      },
+      { name: "Pull-Up", sets: [{ kg: 0, reps: 10 }] },
+    ],
+  };
+
+  it("sums volume/reps/sets and picks the best e1RM for one exercise", () => {
+    expect(sessionMetrics(w, "Bench")).toEqual({
+      volume: 60 * 8 + 65 * 5,
+      reps: 13,
+      setCount: 2,
+      bestE1rm: e1rm(60, 8), // 76.0 beats 75.8
+    });
+  });
+
+  it("scores bodyweight sets zero on volume and e1RM", () => {
+    expect(sessionMetrics(w, "Pull-Up")).toEqual({
+      volume: 0,
+      reps: 10,
+      setCount: 1,
+      bestE1rm: 0,
+    });
+  });
+
+  it("flatlines for unknown exercises", () => {
+    expect(sessionMetrics(w, "Squat")).toEqual({
+      volume: 0,
+      reps: 0,
+      setCount: 0,
+      bestE1rm: 0,
+    });
   });
 });
