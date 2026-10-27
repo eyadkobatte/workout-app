@@ -28,7 +28,11 @@ export function groupLabel(category: Category): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-/** free-exercise-db muscles, plus common custom-exercise spellings, → group. */
+/**
+ * free-exercise-db muscles, plus common custom-exercise spellings, → group.
+ * Canonical group ids map to themselves so a saved custom exercise round-trips
+ * (the picker stores the group id as `muscle`; see Exercises.tsx save path).
+ */
 const SOURCE_TO_GROUP: Record<string, MuscleGroup> = {
   shoulders: "shoulders",
   traps: "shoulders",
@@ -46,6 +50,7 @@ const SOURCE_TO_GROUP: Record<string, MuscleGroup> = {
   "middle back": "back",
   "lower back": "back",
   "upper back": "back",
+  back: "back",
 
   quadriceps: "legs",
   quads: "legs",
@@ -55,6 +60,7 @@ const SOURCE_TO_GROUP: Record<string, MuscleGroup> = {
   glutes: "legs",
   abductors: "legs",
   adductors: "legs",
+  legs: "legs",
 
   abdominals: "core",
   abs: "core",

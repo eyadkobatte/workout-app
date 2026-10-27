@@ -43,6 +43,12 @@ describe("normalizeMuscle", () => {
     expect(normalizeMuscle("Upper Back")).toBe("back");
   });
 
+  it("maps every canonical group id to itself (custom save→load round-trip)", () => {
+    for (const group of MUSCLE_GROUPS) {
+      expect(normalizeMuscle(group)).toBe(group);
+    }
+  });
+
   it("returns null for unrecognized values (legacy customs stay grouped later)", () => {
     expect(normalizeMuscle("synaptic strength")).toBe(null);
   });
