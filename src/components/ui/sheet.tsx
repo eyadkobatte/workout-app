@@ -8,6 +8,8 @@ export const SheetDescription = DialogPrimitive.Description;
 interface SheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Bottom sheet by default; `full` scrolls as a full-screen dialog. */
+  variant?: "bottom" | "full";
   children: ReactNode;
 }
 
@@ -16,7 +18,8 @@ interface SheetProps {
  * controlled: render `open` and the portal, backdrop and slide animation are
  * handled here.
  */
-export function Sheet({ open, onOpenChange, children }: SheetProps) {
+export function Sheet({ open, onOpenChange, variant = "bottom", children }: SheetProps) {
+  const full = variant === "full";
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <AnimatePresence>
@@ -32,13 +35,19 @@ export function Sheet({ open, onOpenChange, children }: SheetProps) {
             </DialogPrimitive.Overlay>
             <DialogPrimitive.Content forceMount asChild aria-describedby={undefined}>
               <motion.div
-                className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-lg border border-b-0 border-border bg-card pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+                className={
+                  full
+                    ? "fixed inset-0 z-50 mx-auto max-w-lg border-border bg-card pb-[env(safe-area-inset-bottom)]"
+                    : "fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-lg border border-b-0 border-border bg-card pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+                }
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", stiffness: 400, damping: 40 }}
               >
-                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" aria-hidden />
+                {!full && (
+                  <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" aria-hidden />
+                )}
                 {children}
               </motion.div>
             </DialogPrimitive.Content>

@@ -87,11 +87,7 @@ function AddCustomSheet({
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <div
-            role="group"
-            aria-label="Category"
-            className="flex flex-wrap gap-2"
-          >
+          <div role="group" aria-label="Category" className="flex flex-wrap gap-2">
             {MUSCLE_GROUPS.map((g) => (
               <FilterChip
                 key={g}

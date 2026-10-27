@@ -23,3 +23,8 @@ _Avoid_: pre-fill, default value
 **Effective value**:
 What a set field is worth at Finish: the typed value, else the placeholder,
 else 0.
+
+**Previously logged exercise**:
+An exercise with at least one logged set in a finished workout. Exact exercise
+names distinguish variations. Draft workouts do not contribute.
+_Avoid_: favorite exercise, pinned exercise, recently used exercise

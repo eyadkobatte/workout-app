@@ -73,8 +73,7 @@ export function categoryList(exercises: ExerciseInfo[]): ExerciseCategory[] {
     if (count) list.push({ category: group, label: groupLabel(group), count });
   }
   const ungrouped = counts.get(UNGROUPED);
-  if (ungrouped)
-    list.push({ category: UNGROUPED, label: groupLabel(UNGROUPED), count: ungrouped });
+  if (ungrouped) list.push({ category: UNGROUPED, label: groupLabel(UNGROUPED), count: ungrouped });
   categoriesSource = exercises;
   categoriesCache = list;
   return categoriesCache;

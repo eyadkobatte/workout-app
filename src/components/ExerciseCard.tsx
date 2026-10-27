@@ -18,6 +18,8 @@ export interface ExerciseCardProps {
   onSetChange: (index: number, set: WorkoutSet) => void;
   onSetRemove: (index: number) => void;
   onDragStart: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  /** Opens the reusable exercise detail sheet without leaving the workout. */
+  onDetails: () => void;
 }
 
 export function Chip({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
@@ -43,10 +45,11 @@ export function ExerciseCard({
   onSetChange,
   onSetRemove,
   onDragStart,
+  onDetails,
 }: ExerciseCardProps) {
   const prevSets = previousSession?.exercises.find((e) => e.name === exercise.name)?.sets;
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card" data-exercise-name={exercise.name}>
       <div className="flex items-center gap-1 px-1 pt-1">
         <button
           type="button"
@@ -56,7 +59,14 @@ export function ExerciseCard({
         >
           <GripVertical className="size-4" />
         </button>
-        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{exercise.name}</h2>
+        <button
+          type="button"
+          onClick={onDetails}
+          aria-label={`View ${exercise.name} details`}
+          className="flex h-11 min-w-0 flex-1 cursor-pointer items-center px-1 text-left hover:text-accent"
+        >
+          <h2 className="min-w-0 truncate text-sm font-semibold">{exercise.name}</h2>
+        </button>
         <button
           type="button"
           aria-label={`Remove ${exercise.name}`}

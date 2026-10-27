@@ -2,6 +2,7 @@ import { ChevronLeft, Plus } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
 import { useEffect, useState } from "react";
 import { ExerciseCard, type ExerciseCardProps } from "../components/ExerciseCard";
+import { ExerciseDetailSheet } from "../components/ExerciseDetailSheet";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { Button } from "../components/ui/button";
 import {
@@ -112,6 +113,7 @@ export function Workout({ id }: { id: string }) {
   const [workout, setWorkout] = useState<WorkoutDoc | null>(null);
   const [history, setHistory] = useState<WorkoutDoc[]>([]); // finished, excluding this one
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [detailName, setDetailName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,6 +165,20 @@ export function Workout({ id }: { id: string }) {
   }
 
   const elapsed = now - workout.startedAt;
+
+  const addExercise = (name: string) => {
+    if (workout.exercises.some((exercise) => exercise.name === name)) return;
+    update((w) => ({
+      ...w,
+      exercises: [...w.exercises, { name, sets: [{ kg: null, reps: null }] }],
+    }));
+    // Reveal the full exercise card after React commits the append.
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-exercise-name="${CSS.escape(name)}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -220,6 +236,7 @@ export function Workout({ id }: { id: string }) {
                   ),
                 }))
               }
+              onDetails={() => setDetailName(exercise.name)}
             />
           );
         })}
@@ -250,12 +267,29 @@ export function Workout({ id }: { id: string }) {
         onOpenChange={setPickerOpen}
         onPick={(name) => {
           setPickerOpen(false);
-          update((w) => ({
-            ...w,
-            exercises: [...w.exercises, { name, sets: [{ kg: null, reps: null }] }],
-          }));
+          setDetailName(null);
+          addExercise(name);
         }}
+        onDetails={(name) => setDetailName(name)}
+        history={history}
         existing={workout.exercises.map((e) => e.name)}
+      />
+
+      <ExerciseDetailSheet
+        open={detailName !== null}
+        name={detailName ?? ""}
+        onOpenChange={(open) => {
+          if (!open) setDetailName(null);
+        }}
+        onAdd={
+          detailName !== null
+            ? () => {
+                addExercise(detailName);
+                setPickerOpen(false);
+                setDetailName(null);
+              }
+            : undefined
+        }
       />
     </div>
   );
