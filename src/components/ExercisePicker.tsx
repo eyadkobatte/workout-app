@@ -4,6 +4,7 @@ import { Sheet, SheetTitle } from "./ui/sheet";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { categoryList, loadExercises, type ExerciseInfo } from "../lib/exercises";
+import { groupLabel, type Category } from "../lib/muscleGroups";
 
 interface ExercisePickerProps {
   open: boolean;
@@ -41,7 +42,7 @@ function ExerciseRow({
  */
 export function ExercisePicker({ open, onOpenChange, onPick, existing = [] }: ExercisePickerProps) {
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
+  const [category, setCategory] = useState<Category | null>(null);
   const [exercises, setExercises] = useState<ExerciseInfo[]>([]);
 
   useEffect(() => {
@@ -62,16 +63,13 @@ export function ExercisePicker({ open, onOpenChange, onPick, existing = [] }: Ex
     return exercises.filter((e) => !added.has(e.name));
   }, [exercises, existing]);
 
-  const categories = useMemo(() => {
-    const list = categoryList(available);
-    return list.filter((c) => c.count > 0);
-  }, [available]);
+  const categories = useMemo(() => categoryList(available), [available]);
 
   const searching = query.trim() !== "";
 
   const results = useMemo(() => {
     const q = query.toLowerCase();
-    const pool = searching ? available : available.filter((e) => e.muscle === category);
+    const pool = searching ? available : available.filter((e) => e.category === category);
     return pool.filter((e) => !searching || e.name.toLowerCase().includes(q)).slice(0, 50);
   }, [available, category, query, searching]);
 
@@ -98,13 +96,13 @@ export function ExercisePicker({ open, onOpenChange, onPick, existing = [] }: Ex
   ) : (
     <ul className="max-h-[50dvh] divide-y divide-border overflow-y-auto">
       {categories.map((c) => (
-        <li key={c.muscle}>
+        <li key={c.category}>
           <button
             type="button"
             className="flex h-12 w-full items-center justify-between px-4 text-left hover:bg-muted"
-            onClick={() => setCategory(c.muscle)}
+            onClick={() => setCategory(c.category)}
           >
-            <span className="text-sm font-medium">{c.muscle}</span>
+            <span className="text-sm font-medium">{c.label}</span>
             <span className="text-xs text-muted-foreground">
               {c.count} exercise{c.count === 1 ? "" : "s"}
             </span>
@@ -133,7 +131,9 @@ export function ExercisePicker({ open, onOpenChange, onPick, existing = [] }: Ex
               ←
             </Button>
           )}
-          <SheetTitle>{searching ? "Search results" : (category ?? "Add exercise")}</SheetTitle>
+          <SheetTitle>
+            {searching ? "Search results" : (category ? groupLabel(category) : "Add exercise")}
+          </SheetTitle>
         </div>
         <Input
           autoFocus

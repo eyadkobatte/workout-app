@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Sheet, SheetTitle } from "../components/ui/sheet";
-import { loadExercises, type ExerciseInfo } from "../lib/exercises";
+import { loadExercises, categoryList, type ExerciseInfo } from "../lib/exercises";
 import { putCustomExercise } from "../lib/db";
+import { MUSCLE_GROUPS, groupLabel, type Category, type MuscleGroup } from "../lib/muscleGroups";
 import { navigate } from "../lib/router";
 import { cn } from "../lib/utils";
 
@@ -52,23 +53,23 @@ function AddCustomSheet({
   onSaved,
 }: AddCustomSheetProps) {
   const [name, setName] = useState(initialName);
-  const [muscle, setMuscle] = useState("");
+  const [group, setGroup] = useState<MuscleGroup | null>(null);
 
   // Reset the form from the close event, not an effect.
   const handleOpenChange = (next: boolean) => {
     onOpenChange(next);
     if (!next) {
       setName("");
-      setMuscle("");
+      setGroup(null);
     }
   };
 
   const trimmed = name.trim();
   const duplicate = existingNames.some((n) => n.toLowerCase() === trimmed.toLowerCase());
-  const canSave = trimmed !== "" && !duplicate;
+  const canSave = trimmed !== "" && !duplicate && group !== null;
 
   const save = () => {
-    void putCustomExercise({ name: trimmed, muscle: muscle.trim() }).then(() => {
+    void putCustomExercise({ name: trimmed, muscle: group! }).then(() => {
       onSaved();
       handleOpenChange(false);
     });
@@ -86,12 +87,20 @@ function AddCustomSheet({
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <Input
-            placeholder="Muscle (e.g. chest) — optional"
-            aria-label="Muscle"
-            value={muscle}
-            onChange={(e) => setMuscle(e.target.value)}
-          />
+          <div
+            role="group"
+            aria-label="Category"
+            className="flex flex-wrap gap-2"
+          >
+            {MUSCLE_GROUPS.map((g) => (
+              <FilterChip
+                key={g}
+                label={groupLabel(g)}
+                selected={group === g}
+                onClick={() => setGroup(g)}
+              />
+            ))}
+          </div>
           {duplicate && (
             <p className="text-xs text-muted-foreground">
               Already in the library — pick it from the list or rename this one.
@@ -108,7 +117,7 @@ function AddCustomSheet({
 
 export function Exercises() {
   const [query, setQuery] = useState("");
-  const [muscle, setMuscle] = useState<string | null>(null); // null = all
+  const [category, setCategory] = useState<Category | null>(null); // null = all
   const [exercises, setExercises] = useState<ExerciseInfo[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [seedName, setSeedName] = useState("");
@@ -121,17 +130,16 @@ export function Exercises() {
     refresh();
   }, [refresh]);
 
-  const muscles = useMemo(
-    () => [...new Set(exercises.map((e) => e.muscle).filter((m) => m !== ""))].sort(),
-    [exercises],
-  );
+  const categories = useMemo(() => categoryList(exercises), [exercises]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return exercises
-      .filter((e) => (muscle === null || e.muscle === muscle) && e.name.toLowerCase().includes(q))
+      .filter(
+        (e) => (category === null || e.category === category) && e.name.toLowerCase().includes(q),
+      )
       .slice(0, MATCH_LIMIT);
-  }, [exercises, query, muscle]);
+  }, [exercises, query, category]);
 
   return (
     <div className="space-y-4">
@@ -155,9 +163,14 @@ export function Exercises() {
       />
 
       <div className="flex gap-2 overflow-x-auto pb-1">
-        <FilterChip label="All" selected={muscle === null} onClick={() => setMuscle(null)} />
-        {muscles.map((m) => (
-          <FilterChip key={m} label={m} selected={muscle === m} onClick={() => setMuscle(m)} />
+        <FilterChip label="All" selected={category === null} onClick={() => setCategory(null)} />
+        {categories.map((c) => (
+          <FilterChip
+            key={c.category}
+            label={c.label}
+            selected={category === c.category}
+            onClick={() => setCategory(c.category)}
+          />
         ))}
       </div>
 
@@ -198,7 +211,7 @@ export function Exercises() {
         )}
         {filtered.length === MATCH_LIMIT && (
           <li className="py-3 text-center text-xs text-muted-foreground">
-            Showing the first {MATCH_LIMIT} — refine the search or pick a muscle
+            Showing the first {MATCH_LIMIT} — refine the search or pick a category
           </li>
         )}
       </ul>
