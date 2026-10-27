@@ -1,6 +1,6 @@
 import { ChevronLeft, Plus } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExerciseCard, type ExerciseCardProps } from "../components/ExerciseCard";
 import { ExerciseDetailSheet } from "../components/ExerciseDetailSheet";
 import { ExercisePicker } from "../components/ExercisePicker";
@@ -114,16 +114,24 @@ export function Workout({ id }: { id: string }) {
   const [history, setHistory] = useState<WorkoutDoc[]>([]); // finished, excluding this one
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailName, setDetailName] = useState<string | null>(null);
+  const creationRef = useRef<Promise<WorkoutDoc> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       if (isNew) {
-        const draft: WorkoutDoc = { startedAt: Date.now(), endedAt: null, exercises: [] };
-        const newId = await putWorkout(draft);
+        // StrictMode double-fires mount effects in dev — share one draft-
+        // creation promise so the write happens exactly once. Both runs await
+        // it; the run whose closure isn't cancelled applies the state.
+        creationRef.current ??= (async () => {
+          const draft: WorkoutDoc = { startedAt: Date.now(), endedAt: null, exercises: [] };
+          const newId = await putWorkout(draft);
+          return { ...draft, id: newId };
+        })();
+        const saved = await creationRef.current;
         if (cancelled) return;
-        setWorkout({ ...draft, id: newId });
-        navigate(`/workout/${newId}`, { replace: true });
+        setWorkout(saved);
+        navigate(`/workout/${saved.id ?? 0}`, { replace: true });
         return;
       }
       const [loaded, all] = await Promise.all([getWorkout(Number(id)), getWorkouts()]);
@@ -183,7 +191,18 @@ export function Workout({ id }: { id: string }) {
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Back">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            // An in-progress workout with nothing logged has nothing to
+            // resume — discard it instead of leaving a phantom draft behind.
+            const empty = workout.endedAt === null && workout.exercises.length === 0;
+            if (empty && workout.id !== undefined) void deleteWorkout(workout.id);
+            navigate("/");
+          }}
+          aria-label="Back"
+        >
           <ChevronLeft />
         </Button>
         <div className="min-w-0">

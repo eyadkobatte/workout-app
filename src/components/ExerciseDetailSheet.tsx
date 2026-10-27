@@ -231,19 +231,9 @@ export function ExerciseDetailSheet({
   return (
     <Sheet variant="full" open={open} onOpenChange={onOpenChange}>
       <div className="mx-auto flex h-full max-w-lg flex-col">
-        <header className="flex items-center gap-2 border-b border-border px-2 py-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onOpenChange(false)}
-            aria-label="Close details"
-          >
-            <ChevronLeft />
-          </Button>
-          <SheetTitle className="min-w-0 flex-1 truncate text-left text-lg font-semibold">
-            {name}
-          </SheetTitle>
-        </header>
+        {/* The name is rendered by `ExerciseDetailView`'s header; this hidden
+            title only satisfies the dialog's accessible-name requirement. */}
+        <SheetTitle className="sr-only">{name}</SheetTitle>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
           <ExerciseDetailView name={name} onBack={() => onOpenChange(false)} onAdd={onAdd} />
         </div>
