@@ -13,16 +13,12 @@ import {
   type Workout as WorkoutDoc,
   type WorkoutExercise,
 } from "../lib/db";
+import { finishWorkout, resolveExerciseContext } from "../lib/placeholder";
 import { navigate } from "../lib/router";
 import {
-  bestSet,
   displayVolume,
   durationMs,
-  exerciseSets,
-  finishWorkout,
   formatElapsed,
-  lastSession,
-  sessionSets,
   workoutRepCount,
   workoutSetCount,
   workoutVolume,
@@ -217,48 +213,41 @@ export function Workout({ id }: { id: string }) {
         onReorder={(exercises: WorkoutExercise[]) => update((w) => ({ ...w, exercises }))}
         className="m-0 list-none space-y-3 p-0"
       >
-        {workout.exercises.map((exercise, i) => {
-          const prev = lastSession(history, exercise.name);
-          return (
-            <ExerciseItem
-              key={exercise.name}
-              exercise={exercise}
-              previousSession={prev}
-              lastBest={prev ? bestSet(sessionSets(prev, exercise.name)) : null}
-              bestEver={bestSet(exerciseSets(history, exercise.name))}
-              onAddSet={() =>
-                update((w) => ({
-                  ...w,
-                  exercises: w.exercises.map((ex, j) =>
-                    j === i ? { ...ex, sets: [...ex.sets, { kg: null, reps: null }] } : ex,
-                  ),
-                }))
-              }
-              onRemoveExercise={() =>
-                update((w) => ({ ...w, exercises: w.exercises.filter((_, j) => j !== i) }))
-              }
-              onSetChange={(setIndex, set) =>
-                update((w) => ({
-                  ...w,
-                  exercises: w.exercises.map((ex, j) =>
-                    j === i
-                      ? { ...ex, sets: ex.sets.map((s, k) => (k === setIndex ? set : s)) }
-                      : ex,
-                  ),
-                }))
-              }
-              onSetRemove={(setIndex) =>
-                update((w) => ({
-                  ...w,
-                  exercises: w.exercises.map((ex, j) =>
-                    j === i ? { ...ex, sets: ex.sets.filter((_, k) => k !== setIndex) } : ex,
-                  ),
-                }))
-              }
-              onDetails={() => setDetailName(exercise.name)}
-            />
-          );
-        })}
+        {workout.exercises.map((exercise, i) => (
+          <ExerciseItem
+            key={exercise.name}
+            exercise={exercise}
+            context={resolveExerciseContext(history, exercise.name)}
+            onAddSet={() =>
+              update((w) => ({
+                ...w,
+                exercises: w.exercises.map((ex, j) =>
+                  j === i ? { ...ex, sets: [...ex.sets, { kg: null, reps: null }] } : ex,
+                ),
+              }))
+            }
+            onRemoveExercise={() =>
+              update((w) => ({ ...w, exercises: w.exercises.filter((_, j) => j !== i) }))
+            }
+            onSetChange={(setIndex, set) =>
+              update((w) => ({
+                ...w,
+                exercises: w.exercises.map((ex, j) =>
+                  j === i ? { ...ex, sets: ex.sets.map((s, k) => (k === setIndex ? set : s)) } : ex,
+                ),
+              }))
+            }
+            onSetRemove={(setIndex) =>
+              update((w) => ({
+                ...w,
+                exercises: w.exercises.map((ex, j) =>
+                  j === i ? { ...ex, sets: ex.sets.filter((_, k) => k !== setIndex) } : ex,
+                ),
+              }))
+            }
+            onDetails={() => setDetailName(exercise.name)}
+          />
+        ))}
       </Reorder.Group>
 
       {workout.exercises.length === 0 && (
@@ -275,7 +264,7 @@ export function Workout({ id }: { id: string }) {
         <Button
           size="lg"
           className="w-full shadow-lg"
-          onClick={() => update((w) => finishWorkout(w, (name) => lastSession(history, name)))}
+          onClick={() => update((w) => finishWorkout(w, history))}
         >
           Finish Workout
         </Button>

@@ -6,15 +6,9 @@ import {
   displayVolume,
   durationMs,
   e1rm,
-  exerciseSets,
-  effectiveValue,
-  finishWorkout,
   formatElapsed,
   integerReps,
   isLoggedSet,
-  lastSession,
-  sessionMetrics,
-  sessionSets,
   setVolume,
   workoutRepCount,
   workoutSetCount,
@@ -81,104 +75,6 @@ describe("bodyweight sets (issue 04 rule 2)", () => {
   });
 });
 
-describe("effective values at Finish (issue 04 rule 6)", () => {
-  it("uses the typed value, else the previous value, else 0", () => {
-    expect(effectiveValue(22.5, 25)).toBe(22.5);
-    expect(effectiveValue(null, 25)).toBe(25);
-    expect(effectiveValue(null, null)).toBe(0);
-    expect(effectiveValue(null, 0)).toBe(0); // previous bodyweight value stands
-  });
-
-  const benchSession: Workout = {
-    id: 5,
-    startedAt: 0,
-    endedAt: 1,
-    exercises: [
-      {
-        name: "Bench Press",
-        sets: [
-          { kg: 60, reps: 8 },
-          { kg: 65, reps: 5 },
-        ],
-      },
-    ],
-  };
-  const pullSession: Workout = {
-    id: 4,
-    startedAt: 0,
-    endedAt: 1,
-    exercises: [
-      {
-        name: "Pull-Up",
-        sets: [
-          { kg: 0, reps: 10 },
-          { kg: 0, reps: 8 },
-        ],
-      },
-    ],
-  };
-  // Each exercise's own most recent session, not one shared "previous workout".
-  const previousFor = (name: string): Workout | null => {
-    if (name === "Bench Press") return benchSession;
-    if (name === "Pull-Up") return pullSession;
-    return null;
-  };
-
-  const draft: Workout = {
-    id: 7,
-    startedAt: 1_000,
-    endedAt: null,
-    exercises: [
-      {
-        name: "Bench Press",
-        sets: [
-          { kg: 62.5, reps: null },
-          { kg: null, reps: null },
-          { kg: 40, reps: 0 }, // typed reps 0 → dropped
-        ],
-      },
-      {
-        name: "Pull-Up",
-        sets: [
-          { kg: 0, reps: 10 },
-          { kg: null, reps: null }, // materializes from pull history
-        ],
-      },
-      { name: "Squat", sets: [{ kg: null, reps: null }] }, // no history, untouched
-    ],
-  };
-
-  it("materializes placeholders, drops unlogged rows and empty exercises, stamps endedAt", () => {
-    const done = finishWorkout(draft, previousFor, 3_601_000);
-    expect(done.endedAt).toBe(3_601_000);
-    expect(done.id).toBe(7);
-    expect(done.exercises).toEqual([
-      {
-        name: "Bench Press",
-        sets: [
-          { kg: 62.5, reps: 8 },
-          { kg: 65, reps: 5 },
-        ],
-      },
-      {
-        name: "Pull-Up",
-        sets: [
-          { kg: 0, reps: 10 },
-          { kg: 0, reps: 8 },
-        ],
-      },
-    ]);
-  });
-
-  it("stores decimal kg verbatim and keeps hand-computed stats correct", () => {
-    const done = finishWorkout(draft, previousFor, 3_601_000);
-    expect(done.exercises[0]?.sets[0]?.kg).toBe(62.5); // 62.5, not rounded
-    expect(workoutVolume(done)).toBe(62.5 * 8 + 65 * 5 + 0 + 0);
-    expect(workoutSetCount(done)).toBe(4);
-    expect(workoutRepCount(done)).toBe(8 + 5 + 10 + 8);
-  });
-});
-
 describe("integer reps (issue 04 rule 3)", () => {
   it("truncates decimal entry", () => {
     expect(integerReps(7.9)).toBe(7);
@@ -235,101 +131,5 @@ describe("best set (LAST/BEST chips)", () => {
   it("returns null with no candidates", () => {
     expect(bestSet([])).toBeNull();
     expect(bestSet([{ kg: null, reps: null }])).toBeNull();
-  });
-});
-
-describe("session lookups (LAST chip, prev column)", () => {
-  const history: Workout[] = [
-    {
-      id: 1,
-      startedAt: 0,
-      endedAt: 10,
-      exercises: [
-        { name: "Bench", sets: [{ kg: 50, reps: 5 }] },
-        { name: "Row", sets: [{ kg: 60, reps: 8 }] },
-      ],
-    },
-    {
-      id: 2,
-      startedAt: 100,
-      endedAt: 200,
-      exercises: [{ name: "Bench", sets: [{ kg: 60, reps: 8 }] }],
-    },
-    {
-      id: 3,
-      startedAt: 300,
-      endedAt: null, // draft — never counts as a session
-      exercises: [{ name: "Bench", sets: [{ kg: 99, reps: 9 }] }],
-    },
-  ];
-
-  it("returns the logged sets of the named exercise in one workout", () => {
-    expect(sessionSets(history[0], "Bench")).toEqual([{ kg: 50, reps: 5 }]);
-    expect(sessionSets(history[0], "Squat")).toEqual([]);
-  });
-
-  it("finds each exercise's own most recent finished session", () => {
-    expect(lastSession(history, "Bench")?.id).toBe(2);
-    expect(lastSession(history, "Row")?.id).toBe(1);
-    expect(lastSession(history, "Squat")).toBeNull();
-  });
-
-  it("flattens sets across finished workouts only", () => {
-    expect(exerciseSets(history, "Bench")).toEqual([
-      { kg: 50, reps: 5 },
-      { kg: 60, reps: 8 },
-    ]);
-  });
-
-  it("derives the LAST and BEST chips", () => {
-    const prev = lastSession(history, "Bench");
-    expect(prev ? bestSet(sessionSets(prev, "Bench")) : null).toEqual({ kg: 60, reps: 8 });
-    expect(bestSet(exerciseSets(history, "Bench"))).toEqual({ kg: 60, reps: 8 });
-  });
-});
-
-describe("session metrics (chart series)", () => {
-  const w: Workout = {
-    id: 1,
-    startedAt: 0,
-    endedAt: 10,
-    exercises: [
-      {
-        name: "Bench",
-        sets: [
-          { kg: 60, reps: 8 },
-          { kg: 65, reps: 5 },
-          { kg: null, reps: null },
-        ],
-      },
-      { name: "Pull-Up", sets: [{ kg: 0, reps: 10 }] },
-    ],
-  };
-
-  it("sums volume/reps/sets and picks the best e1RM for one exercise", () => {
-    expect(sessionMetrics(w, "Bench")).toEqual({
-      volume: 60 * 8 + 65 * 5,
-      reps: 13,
-      setCount: 2,
-      bestE1rm: e1rm(60, 8), // 76.0 beats 75.8
-    });
-  });
-
-  it("scores bodyweight sets zero on volume and e1RM", () => {
-    expect(sessionMetrics(w, "Pull-Up")).toEqual({
-      volume: 0,
-      reps: 10,
-      setCount: 1,
-      bestE1rm: 0,
-    });
-  });
-
-  it("flatlines for unknown exercises", () => {
-    expect(sessionMetrics(w, "Squat")).toEqual({
-      volume: 0,
-      reps: 0,
-      setCount: 0,
-      bestE1rm: 0,
-    });
   });
 });

@@ -8,13 +8,12 @@ import { Sheet, SheetTitle } from "./ui/sheet";
 import { getWorkouts, type Workout } from "../lib/db";
 import { exerciseImageUrls, loadExercises, type ExerciseInfo } from "../lib/exercises";
 import {
-  bestSet,
-  displayE1rm,
-  displayVolume,
+  resolveExerciseContext,
   sessionMetrics,
   sessionSets,
   type SessionMetrics,
-} from "../lib/stats";
+} from "../lib/placeholder";
+import { bestSet, displayE1rm, displayVolume } from "../lib/stats";
 import { cn } from "../lib/utils";
 
 const CHARTS: {
@@ -128,7 +127,9 @@ export function ExerciseDetailView({
     }),
     { volume: 0, reps: 0, setCount: 0, bestE1rm: 0 },
   );
-  const bestEver = bestSet(history.flatMap((w) => sessionSets(w, name)));
+  // Resolver input contract: finished workouts only, oldest first — this
+  // history is newest-first for the rows, so reverse a copy for the call.
+  const { bestEver } = resolveExerciseContext([...history].reverse(), name);
 
   return (
     <div className="space-y-4">

@@ -1,18 +1,15 @@
 import { GripVertical, Plus, X } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { Workout, WorkoutExercise, WorkoutSet } from "../lib/db";
+import type { WorkoutExercise, WorkoutSet } from "../lib/db";
+import type { ExerciseContext } from "../lib/placeholder";
 import { cn } from "../lib/utils";
 import { SET_GRID, SetRow } from "./SetRow";
 
 export interface ExerciseCardProps {
   exercise: WorkoutExercise;
-  /** The exercise's most recent finished session — prev column + placeholders. */
-  previousSession: Workout | null;
-  /** Best set of that session, for the LAST chip. */
-  lastBest: WorkoutSet | null;
-  /** All-time best set by e1RM, for the BEST chip. */
-  bestEver: WorkoutSet | null;
+  /** The resolver's output: prev column, LAST chip, BEST chip. */
+  context: ExerciseContext;
   onAddSet: () => void;
   onRemoveExercise: () => void;
   onSetChange: (index: number, set: WorkoutSet) => void;
@@ -37,9 +34,7 @@ export function Chip({ label, value, accent }: { label: string; value: string; a
  */
 export function ExerciseCard({
   exercise,
-  previousSession,
-  lastBest,
-  bestEver,
+  context,
   onAddSet,
   onRemoveExercise,
   onSetChange,
@@ -47,7 +42,7 @@ export function ExerciseCard({
   onDragStart,
   onDetails,
 }: ExerciseCardProps) {
-  const prevSets = previousSession?.exercises.find((e) => e.name === exercise.name)?.sets;
+  const { previousSets, lastBest, bestEver } = context;
   return (
     <div className="rounded-lg border border-border bg-card" data-exercise-name={exercise.name}>
       <div className="flex items-center gap-1 px-1 pt-1">
@@ -105,7 +100,7 @@ export function ExerciseCard({
               key={i}
               index={i}
               set={set}
-              previous={prevSets?.[i]}
+              previous={previousSets?.[i]}
               onChange={(next) => onSetChange(i, next)}
               onRemove={() => onSetRemove(i)}
             />
