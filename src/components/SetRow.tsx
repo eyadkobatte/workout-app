@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { WorkoutSet } from "../lib/db";
+import { blur, displayText, keystroke, type FieldUpdate } from "../lib/numberField";
 import { integerReps } from "../lib/stats";
 import { cn } from "../lib/utils";
 
@@ -27,11 +28,11 @@ interface NumberFieldProps {
 }
 
 /**
- * Free numeric entry (issue 04 rule 1): a plain text field over a decimal
- * keypad. The visible text drafts while typing — "62." must not reformat to
- * "62" — and every parseable keystroke commits so autosave keeps up. When the
- * committed value changes from outside (reorder, row delete), the text
- * resyncs as long as the field is not focused.
+ * Thin DOM adapter over the pure entry policy (`lib/numberField.ts`,
+ * issue 05): holds the text state and the focus guard, forwards every
+ * event to the policy, and applies what it returns. The visible text
+ * drafts while typing; every parseable keystroke commits so autosave
+ * keeps up; an external value change resyncs the text while unfocused.
  */
 function NumberField({
   value,
@@ -41,34 +42,16 @@ function NumberField({
   placeholder,
   label,
 }: NumberFieldProps) {
-  const [text, setText] = useState(() => (value === null ? "" : String(value)));
+  const [text, setText] = useState(() => displayText(value));
   const focused = useRef(false);
 
   useEffect(() => {
-    if (!focused.current) setText(value === null ? "" : String(value));
+    if (!focused.current) setText(displayText(value));
   }, [value]);
 
-  const commit = (raw: string) => {
-    setText(raw);
-    const trimmed = raw.trim();
-    if (trimmed === "") {
-      onCommit(null);
-      return;
-    }
-    const parsed = Number(trimmed);
-    if (!Number.isNaN(parsed)) onCommit(parse(parsed));
-  };
-
-  const blur = () => {
-    focused.current = false;
-    const parsed = Number(text.trim());
-    if (text.trim() !== "" && !Number.isNaN(parsed)) {
-      const final = parse(parsed);
-      if (final !== value) onCommit(final);
-      setText(String(final));
-    } else {
-      setText(value === null ? "" : String(value));
-    }
+  const apply = (update: FieldUpdate) => {
+    setText(update.text);
+    if (update.commit !== undefined) onCommit(update.commit);
   };
 
   return (
@@ -80,8 +63,11 @@ function NumberField({
       value={text}
       placeholder={placeholder}
       onFocus={() => (focused.current = true)}
-      onBlur={blur}
-      onChange={(e) => commit(e.target.value)}
+      onBlur={() => {
+        focused.current = false;
+        apply(blur(text, value, parse));
+      }}
+      onChange={(e) => apply(keystroke(e.target.value, parse))}
       className="h-11 w-full rounded-none bg-transparent px-1 text-right text-sm font-semibold outline-none placeholder:font-normal placeholder:text-muted-foreground/50 focus-visible:bg-muted"
     />
   );
