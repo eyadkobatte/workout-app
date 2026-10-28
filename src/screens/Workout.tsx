@@ -1,6 +1,6 @@
 import { ChevronLeft, Plus } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ExerciseCard, type ExerciseCardProps } from "../components/ExerciseCard";
 import { ExerciseDetailSheet } from "../components/ExerciseDetailSheet";
 import { ExercisePicker } from "../components/ExercisePicker";
@@ -9,11 +9,10 @@ import {
   deleteWorkout,
   getWorkout,
   getWorkouts,
-  putWorkout,
   type Workout as WorkoutDoc,
   type WorkoutExercise,
 } from "../lib/db";
-import { finishWorkout, resolveExerciseContext } from "../lib/placeholder";
+import { resolveExerciseContext } from "../lib/placeholder";
 import { navigate } from "../lib/router";
 import {
   displayVolume,
@@ -24,6 +23,14 @@ import {
   workoutVolume,
 } from "../lib/stats";
 import { useNow } from "../lib/useNow";
+import {
+  createDraft,
+  discardIfEmpty,
+  finish,
+  finishedWorkouts,
+  isDraft,
+  saveDraft,
+} from "../lib/workoutSession";
 
 /** One card in the drag-reorder list, handle-only drag. */
 function ExerciseItem(props: Omit<ExerciseCardProps, "onDragStart">) {
@@ -110,21 +117,16 @@ export function Workout({ id }: { id: string }) {
   const [history, setHistory] = useState<WorkoutDoc[]>([]); // finished, excluding this one
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailName, setDetailName] = useState<string | null>(null);
-  const creationRef = useRef<Promise<WorkoutDoc> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       if (isNew) {
-        // StrictMode double-fires mount effects in dev — share one draft-
-        // creation promise so the write happens exactly once. Both runs await
-        // it; the run whose closure isn't cancelled applies the state.
-        creationRef.current ??= (async () => {
-          const draft: WorkoutDoc = { startedAt: Date.now(), endedAt: null, exercises: [] };
-          const newId = await putWorkout(draft);
-          return { ...draft, id: newId };
-        })();
-        const saved = await creationRef.current;
+        // Start Workout: createDraft resumes the existing draft if one
+        // exists (ADR 0001) and shares one write across StrictMode's
+        // double mount. Both runs await it; the run whose closure isn't
+        // cancelled applies the state.
+        const saved = await createDraft();
         if (cancelled) return;
         setWorkout(saved);
         navigate(`/workout/${saved.id ?? 0}`, { replace: true });
@@ -137,7 +139,7 @@ export function Workout({ id }: { id: string }) {
         return;
       }
       setWorkout(loaded);
-      setHistory(all.filter((w) => w.endedAt !== null && w.id !== loaded.id));
+      setHistory(finishedWorkouts(all).filter((w) => w.id !== loaded.id));
     })();
     return () => {
       cancelled = true;
@@ -146,7 +148,7 @@ export function Workout({ id }: { id: string }) {
 
   // Autosave on every change — a draft is never lost to a killed app.
   useEffect(() => {
-    if (workout) void putWorkout(workout);
+    if (workout && isDraft(workout)) void saveDraft(workout);
   }, [workout]);
 
   const now = useNow(1000);
@@ -155,7 +157,7 @@ export function Workout({ id }: { id: string }) {
 
   const update = (fn: (w: WorkoutDoc) => WorkoutDoc) => setWorkout(fn(workout));
 
-  if (workout.endedAt !== null) {
+  if (!isDraft(workout)) {
     return (
       <Finished
         workout={workout}
@@ -193,8 +195,7 @@ export function Workout({ id }: { id: string }) {
           onClick={() => {
             // An in-progress workout with nothing logged has nothing to
             // resume — discard it instead of leaving a phantom draft behind.
-            const empty = workout.endedAt === null && workout.exercises.length === 0;
-            if (empty && workout.id !== undefined) void deleteWorkout(workout.id);
+            void discardIfEmpty(workout);
             navigate("/");
           }}
           aria-label="Back"
@@ -264,7 +265,13 @@ export function Workout({ id }: { id: string }) {
         <Button
           size="lg"
           className="w-full shadow-lg"
-          onClick={() => update((w) => finishWorkout(w, history))}
+          onClick={() => {
+            void finish(workout, history).then((finished) => {
+              if (finished) setWorkout(finished);
+              // Nothing logged — the draft was discarded, not persisted.
+              else navigate("/", { replace: true });
+            });
+          }}
         >
           Finish Workout
         </Button>

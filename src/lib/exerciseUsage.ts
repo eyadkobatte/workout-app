@@ -1,6 +1,7 @@
 import type { Workout } from "./db";
 import type { ExerciseInfo } from "./exercises";
 import { isLoggedSet } from "./stats";
+import { finishedWorkouts } from "./workoutSession";
 
 /** Personal usage of one exercise, derived from finished workouts only. */
 export interface ExerciseUsage {
@@ -17,8 +18,7 @@ export type ExerciseUsageByName = ReadonlyMap<string, ExerciseUsage>;
  */
 export function buildExerciseUsage(workouts: readonly Workout[]): ExerciseUsageByName {
   const usage = new Map<string, ExerciseUsage>();
-  for (const workout of workouts) {
-    if (workout.endedAt === null) continue;
+  for (const workout of finishedWorkouts(workouts)) {
     for (const exercise of workout.exercises) {
       if (!exercise.sets.some(isLoggedSet)) continue;
       const prev = usage.get(exercise.name);

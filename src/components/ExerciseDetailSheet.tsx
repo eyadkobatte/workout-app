@@ -14,6 +14,7 @@ import {
   type SessionMetrics,
 } from "../lib/placeholder";
 import { bestSet, displayE1rm, displayVolume } from "../lib/stats";
+import { finishedWorkouts } from "../lib/workoutSession";
 import { cn } from "../lib/utils";
 
 const CHARTS: {
@@ -99,7 +100,9 @@ export function ExerciseDetailView({
       if (cancelled) return;
       setInfo(library?.find((e) => e.name === name) ?? null);
       setHistory(
-        all.filter((w) => w.endedAt !== null && w.exercises.some((x) => x.name === name)).reverse(),
+        finishedWorkouts(all)
+          .filter((w) => w.exercises.some((x) => x.name === name))
+          .reverse(),
       );
     })();
     return () => {

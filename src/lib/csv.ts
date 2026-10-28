@@ -1,5 +1,6 @@
 import type { Workout } from "./db";
 import { e1rm, isLoggedSet, setVolume } from "./stats";
+import { finishedWorkouts } from "./workoutSession";
 
 /** Local calendar date as YYYY-MM-DD (toISOString would shift to UTC). */
 function localDate(ms: number): string {
@@ -12,13 +13,13 @@ function localDate(ms: number): string {
 /**
  * One row per logged set of each finished workout: date, exercise, set,
  * kg, reps, volume, e1rm, session duration in minutes. Raw values per
- * issue 04 rule 3 (rounding is display-time only); drafts are excluded.
+ * issue 04 rule 3 (rounding is display-time only); drafts are excluded;
+ * rows follow id order (creation order, ADR 0001).
  */
 export function workoutsToCsv(workouts: Workout[]): string {
   const header = "date,exercise,set,kg,reps,volume,e1rm,duration_min";
   const rows: string[] = [];
-  for (const w of [...workouts].sort((a, b) => a.startedAt - b.startedAt)) {
-    if (w.endedAt === null) continue;
+  for (const w of finishedWorkouts(workouts)) {
     const date = localDate(w.startedAt);
     const duration = ((w.endedAt - w.startedAt) / 60000).toFixed(1);
     for (const ex of w.exercises) {

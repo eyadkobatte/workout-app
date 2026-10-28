@@ -7,6 +7,7 @@ import { getWorkouts, type Workout } from "../lib/db";
 import { navigate } from "../lib/router";
 import { formatElapsed } from "../lib/stats";
 import { useNow } from "../lib/useNow";
+import { activeDraft, finishedWorkouts } from "../lib/workoutSession";
 
 export function Home() {
   const [all, setAll] = useState<Workout[]>([]);
@@ -16,8 +17,8 @@ export function Home() {
     void getWorkouts().then(setAll);
   }, []);
 
-  const draft = all.filter((w) => w.endedAt === null).at(-1) ?? null; // newest draft
-  const finished = all.filter((w) => w.endedAt !== null).reverse(); // newest first
+  const draft = activeDraft(all); // at most one (ADR 0001)
+  const finished = finishedWorkouts(all).reverse(); // newest first
 
   return (
     <div className="space-y-6">

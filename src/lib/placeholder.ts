@@ -52,37 +52,6 @@ function exerciseSets(history: Workout[], name: string): WorkoutSet[] {
   return history.flatMap((w) => sessionSets(w, name));
 }
 
-/** Typed value, else the previous session's same-numbered set value, else 0. */
-function effectiveValue(typed: number | null, previous: number | null): number {
-  return typed ?? previous ?? 0;
-}
-
-/**
- * Finish materializes placeholders (issue 04 rule 6): every field becomes its
- * effective value via the resolver's positional match, rows whose effective
- * reps <= 0 are dropped, exercises left with no logged sets are dropped, and
- * endedAt is stamped. History: finished workouts only, oldest first.
- */
-export function finishWorkout(
-  workout: Workout,
-  history: Workout[],
-  endedAt: number = Date.now(),
-): Workout {
-  const exercises = workout.exercises
-    .map((exercise) => {
-      const { previousSets } = resolveExerciseContext(history, exercise.name);
-      const sets = exercise.sets
-        .map((set, i) => ({
-          kg: effectiveValue(set.kg, previousSets?.[i]?.kg ?? null),
-          reps: effectiveValue(set.reps, previousSets?.[i]?.reps ?? null),
-        }))
-        .filter(isLoggedSet);
-      return { name: exercise.name, sets };
-    })
-    .filter((exercise) => exercise.sets.length > 0);
-  return { ...workout, endedAt, exercises };
-}
-
 /** The resolved context for one exercise: prev column, LAST chip, BEST chip. */
 export function resolveExerciseContext(history: Workout[], name: string): ExerciseContext {
   const prev = lastSession(history, name);

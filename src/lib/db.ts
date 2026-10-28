@@ -65,6 +65,13 @@ async function store(name: "workouts" | "customExercises", mode: IDBTransactionM
   return db.transaction(name, mode).objectStore(name);
 }
 
+/**
+ * All workouts, ascending `id` = creation order (oldest first). Safe by
+ * construction: inserts are always keyless puts and IndexedDB's key
+ * generator never reuses or reorders committed keys (ADR 0001). A future
+ * import/restore path that assigns explicit ids must re-establish this
+ * order itself.
+ */
 export function getWorkouts(): Promise<Workout[]> {
   return store("workouts", "readonly").then((s) => request(s.getAll()));
 }
@@ -73,6 +80,7 @@ export function getWorkout(id: number): Promise<Workout | undefined> {
   return store("workouts", "readonly").then((s) => request<Workout | undefined>(s.get(id)));
 }
 
+/** Keyless put (no `id`) creates with an autoincrement key; with `id` it updates in place. */
 export async function putWorkout(workout: Workout): Promise<number> {
   const key = await request((await store("workouts", "readwrite")).put(workout));
   return Number(key);
