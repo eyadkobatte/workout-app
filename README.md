@@ -20,6 +20,7 @@ npm run format  # auto-format
 ```
 
 CI runs the same gate inside a Docker build for every pull request and push to `main`.
+The workflow is defined in `.github/workflows/ci.yml`.
 
 ## Docker
 
@@ -45,14 +46,38 @@ private, run `docker login ghcr.io` before pulling.
 Versions follow [Semantic Versioning](https://semver.org/). Use a major version for
 breaking changes, a minor version for features, and a patch version for fixes.
 
-To publish a release:
+### CI workflow
 
-1. Run `npm version 1.2.3 --no-git-tag-version`.
-2. Commit and push the package version change to `main`.
-3. Tag that commit with `git tag -a v1.2.3 -m "Release 1.2.3"` and push the tag.
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`.
+It builds the Docker image and runs the full gate inside the build. It does not
+publish the image.
 
-The release workflow publishes `1.2.3`, `1.2`, `1`, and `latest` to
-`ghcr.io/eyadkobatte/workout-app`. Do not move or delete a release tag. Cut a new
-patch release instead.
+### Release workflow
+
+`.github/workflows/release.yml` runs when a tag matching `vMAJOR.MINOR.PATCH` is
+pushed. It verifies that the tag matches `package.json`, builds the image for
+`linux/amd64`, logs in to GHCR with `GITHUB_TOKEN`, and publishes the `MAJOR.MINOR.PATCH`,
+`MAJOR.MINOR`, `MAJOR`, and `latest` tags. It also records provenance and an SBOM
+for the image.
+
+### Publishing a new version
+
+1. Decide the next semantic version.
+2. Update the package version:
+
+   ```sh
+   npm version 1.2.3 --no-git-tag-version
+   ```
+
+3. Commit and push the version change to `main`.
+4. Tag that commit and push the tag:
+
+   ```sh
+   git tag -a v1.2.3 -m "Release 1.2.3"
+   git push origin v1.2.3
+   ```
+
+The release workflow publishes the image to `ghcr.io/eyadkobatte/workout-app`.
+Do not move or delete a release tag. Cut a new patch release instead.
 
 HTTPS is handled by cloudflared (Cloudflare Tunnel), outside the container.
