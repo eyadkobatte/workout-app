@@ -2,7 +2,7 @@ name: workout-app
 
 services:
   web:
-    image: ghcr.io/eyadkobatte/workout-app:0.1.0
+    image: ghcr.io/eyadkobatte/workout-app:0.2.0
     container_name: workout-app
     restart: unless-stopped
     ports:
