@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Workout } from "../src/lib/db";
 import {
   buildExerciseUsage,
+  categorySections,
   previouslyLogged,
   splitCategoryExercises,
 } from "../src/lib/exerciseUsage";
@@ -146,5 +147,91 @@ describe("splitCategoryExercises", () => {
     expect([...split.doneBefore, ...split.otherExercises].map((e) => e.name)).toEqual(
       [...names].sort((a, b) => a.localeCompare(b)),
     );
+  });
+});
+
+describe("categorySections (the picker's grouping, owned once)", () => {
+  const names = [
+    "Bench Press",
+    "Barbell Bench Press",
+    "Incline Bench Press",
+    "Chest Dip",
+    "Push Up",
+    "Machine Press",
+  ];
+
+  it("returns a single unheaded section when nothing was logged before", () => {
+    const sections = categorySections(
+      names.map((name) => ex(name)),
+      buildExerciseUsage([]),
+      50,
+    );
+    expect(sections).toEqual([
+      {
+        exercises: names.map((name) => ex(name)).sort((a, b) => a.name.localeCompare(b.name)),
+      },
+    ]);
+  });
+
+  it("heads both groups when done-before and other exercises share the view", () => {
+    const usage = new Map([["Bench Press", { sessionCount: 3, lastUsedAt: NOW }]]);
+    const sections = categorySections(
+      names.map((name) => ex(name)),
+      usage,
+      50,
+    );
+    expect(sections).toEqual([
+      { heading: "Done before", exercises: [ex("Bench Press")] },
+      {
+        heading: "Other exercises",
+        exercises: names
+          .filter((name) => name !== "Bench Press")
+          .map((name) => ex(name))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      },
+    ]);
+  });
+
+  it("drops the headings when every exercise in the pool was logged", () => {
+    const pool = ["Bench Press", "Chest Dip", "Push Up"];
+    const usage = new Map(pool.map((name) => [name, { sessionCount: 2, lastUsedAt: NOW }]));
+    const sections = categorySections(
+      pool.map((name) => ex(name)),
+      usage,
+      50,
+    );
+    expect(sections).toEqual([{ exercises: pool.map((name) => ex(name)) }]);
+  });
+
+  it("caps the view at the limit, done before first and others filling the rest", () => {
+    const usage = new Map([
+      ["Bench Press", { sessionCount: 3, lastUsedAt: NOW }],
+      ["Push Up", { sessionCount: 1, lastUsedAt: NOW }],
+    ]);
+    const sections = categorySections(
+      names.map((name) => ex(name)),
+      usage,
+      3,
+    );
+    expect(sections).toEqual([
+      {
+        heading: "Done before",
+        exercises: [ex("Bench Press"), ex("Push Up")], // most used first
+      },
+      { heading: "Other exercises", exercises: [ex("Barbell Bench Press")] },
+    ]);
+  });
+
+  it("returns a single unheaded section when the limit cuts every other exercise", () => {
+    const usage = new Map([
+      ["Bench Press", { sessionCount: 3, lastUsedAt: NOW }],
+      ["Push Up", { sessionCount: 1, lastUsedAt: NOW }],
+    ]);
+    const sections = categorySections(
+      names.map((name) => ex(name)),
+      usage,
+      2, // exactly the two done-before rows — nothing else fits
+    );
+    expect(sections).toEqual([{ exercises: [ex("Bench Press"), ex("Push Up")] }]);
   });
 });

@@ -55,6 +55,13 @@ export interface ExerciseSplit {
   otherExercises: ExerciseInfo[];
 }
 
+/** A rendered group of exercises under one optional heading. */
+export interface ExerciseSection {
+  /** Present only when done-before and other exercises share the view. */
+  heading?: "Done before" | "Other exercises";
+  exercises: ExerciseInfo[];
+}
+
 /**
  * Splits one sortable pool into the优先 Done before group and the remaining
  * alphabetical list. Exercises outside the top five are never deleted and
@@ -82,4 +89,28 @@ export function splitCategoryExercises(
     .filter((e) => !usedSet.has(e.name))
     .sort((a, b) => a.name.localeCompare(b.name));
   return { doneBefore, otherExercises };
+}
+
+/**
+ * The picker's grouping in one place: a category pool split into Done
+ * before and Other (`splitCategoryExercises`), capped at `limit` like
+ * search results — done before first, others filling the rest — with
+ * headings only when both groups are present (a lone group needs no
+ * label).
+ */
+export function categorySections(
+  exercises: readonly ExerciseInfo[],
+  usage: ExerciseUsageByName,
+  limit: number,
+): ExerciseSection[] {
+  const split = splitCategoryExercises(exercises, usage);
+  const ordered = [...split.doneBefore, ...split.otherExercises].slice(0, limit);
+  const others = ordered.slice(split.doneBefore.length);
+  if (split.doneBefore.length > 0 && others.length > 0) {
+    return [
+      { heading: "Done before", exercises: split.doneBefore },
+      { heading: "Other exercises", exercises: others },
+    ];
+  }
+  return [{ exercises: ordered }];
 }

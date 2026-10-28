@@ -7,25 +7,26 @@ import { Button } from "./ui/button";
 import { categoryList, loadExercises, type ExerciseInfo } from "../lib/exercises";
 import { groupLabel, type Category } from "../lib/muscleGroups";
 import {
-  buildExerciseUsage,
+  categorySections,
   previouslyLogged,
-  splitCategoryExercises,
+  type ExerciseSection,
   type ExerciseUsage,
+  type ExerciseUsageByName,
 } from "../lib/exerciseUsage";
 import {
   createExerciseSearch,
   searchExercises,
+  SEARCH_RESULT_LIMIT,
   type ExerciseSearchResult,
 } from "../lib/exerciseSearch";
-import type { Workout } from "../lib/db";
 
 interface ExercisePickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (name: string) => void;
   onDetails: (name: string) => void;
-  /** Finished workouts only; used for previously logged ranking/history. */
-  history: Workout[];
+  /** Personal usage per exercise name — previously logged ranking. */
+  usage: ExerciseUsageByName;
   /** Names already in the workout — hidden from the picker. */
   existing?: string[];
 }
@@ -33,12 +34,6 @@ interface ExercisePickerProps {
 interface PickerRow {
   exercise: ExerciseInfo;
   usage: ExerciseUsage | null;
-}
-
-interface PickerSection {
-  /** Optional heading, used to distinguish Done before from other rows. */
-  label?: string;
-  rows: PickerRow[];
 }
 
 /** Row for a single exercise; shared by the drill-in and search views. */
@@ -118,20 +113,6 @@ function EmptyState({ text }: { text: string }) {
   return <li className="px-4 py-6 text-center text-sm text-muted-foreground">{text}</li>;
 }
 
-/** At most one section when every row shares a source; two headings otherwise. */
-function sectionsWithHeadings(rows: PickerRow[], hasHeadings: boolean): PickerSection[] {
-  if (!hasHeadings) return [{ rows }];
-  const doneBefore = rows.filter((row) => row.usage !== null && row.usage.sessionCount > 0);
-  if (doneBefore.length === 0) return [{ rows }];
-  const doneNames = new Set(doneBefore.map((row) => row.exercise.name));
-  const otherRows = rows.filter((row) => !doneNames.has(row.exercise.name));
-  if (doneBefore.length > 0 && otherRows.length === 0) return [{ rows: doneBefore }];
-  return [
-    { label: "Done before", rows: doneBefore },
-    ...(otherRows.length ? [{ label: "Other exercises", rows: otherRows }] : []),
-  ];
-}
-
 /**
  * Bottom sheet for picking an exercise into the active workout. Opens on
  * muscle-group categories; drilling in lists that group's exercises first
@@ -143,7 +124,7 @@ export function ExercisePicker({
   onOpenChange,
   onPick,
   onDetails,
-  history,
+  usage,
   existing = [],
 }: ExercisePickerProps) {
   const [query, setQuery] = useState("");
@@ -163,8 +144,6 @@ export function ExercisePicker({
     }
   };
 
-  const usage = useMemo(() => buildExerciseUsage(history), [history]);
-
   const available = useMemo(() => {
     const added = new Set(existing);
     return exercises.filter((e) => !added.has(e.name));
@@ -182,17 +161,10 @@ export function ExercisePicker({
     );
   }, [searching, source, query, usage]);
 
-  const categorySections = useMemo<PickerSection[]>(() => {
+  const sections = useMemo<ExerciseSection[]>(() => {
     if (searching || category === null) return [];
     const pool = available.filter((e) => e.category === category);
-    const split = splitCategoryExercises(pool, usage);
-    const ordered = [...split.doneBefore, ...split.otherExercises]
-      .slice(0, 50)
-      .map((exercise) => rowFromUsage(usage, exercise));
-    return sectionsWithHeadings(
-      ordered,
-      ordered.some((row) => row.usage !== null),
-    );
+    return categorySections(pool, usage, SEARCH_RESULT_LIMIT);
   }, [available, category, searching, usage]);
 
   const renderRows = (rows: PickerRow[]) => (
@@ -206,19 +178,23 @@ export function ExercisePicker({
     </ul>
   ) : category ? (
     <ul className="max-h-[50dvh] divide-y divide-border overflow-y-auto">
-      {categorySections.map((section) => (
-        <li key={section.label ?? "exercises"}>
-          {section.label && (
+      {sections.map((section) => (
+        <li key={section.heading ?? "exercises"}>
+          {section.heading && (
             <h3 className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {section.label}
+              {section.heading}
             </h3>
           )}
-          <ul className={section.label ? "divide-y divide-border" : "divide-y divide-border"}>
-            {renderRows(section.rows)}
+          <ul className="divide-y divide-border">
+            <Rows
+              rows={section.exercises.map((exercise) => rowFromUsage(usage, exercise))}
+              onPick={onPick}
+              onDetails={onDetails}
+            />
           </ul>
         </li>
       ))}
-      {categorySections.length === 0 && <EmptyState text="No exercises in this group" />}
+      {sections.length === 0 && <EmptyState text="No exercises in this group" />}
     </ul>
   ) : (
     <ul className="max-h-[50dvh] divide-y divide-border overflow-y-auto">

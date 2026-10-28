@@ -1,6 +1,6 @@
 import { ChevronLeft, Plus } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExerciseCard, type ExerciseCardProps } from "../components/ExerciseCard";
 import { ExerciseDetailSheet } from "../components/ExerciseDetailSheet";
 import { ExercisePicker } from "../components/ExercisePicker";
@@ -14,6 +14,7 @@ import {
 } from "../lib/db";
 import { resolveExerciseContext } from "../lib/placeholder";
 import { navigate } from "../lib/router";
+import { buildExerciseUsage } from "../lib/exerciseUsage";
 import {
   displayVolume,
   durationMs,
@@ -153,6 +154,9 @@ export function Workout({ id }: { id: string }) {
 
   const now = useNow(1000);
 
+  // Usage for the picker's ranking, from finished workouts only.
+  const usage = useMemo(() => buildExerciseUsage(history), [history]);
+
   if (!workout) return null;
 
   const update = (fn: (w: WorkoutDoc) => WorkoutDoc) => setWorkout(fn(workout));
@@ -286,7 +290,7 @@ export function Workout({ id }: { id: string }) {
           addExercise(name);
         }}
         onDetails={(name) => setDetailName(name)}
-        history={history}
+        usage={usage}
         existing={workout.exercises.map((e) => e.name)}
       />
 
